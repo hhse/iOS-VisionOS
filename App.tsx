@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { generateUIComponent } from './services/geminiService';
 import { AppState, CodeLanguage } from './types';
@@ -75,21 +76,19 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* 主界面 - 允许内容高度随需扩展 */}
+      {/* 主界面 */}
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* 左侧栏：输入与控制 */}
         <div className="lg:col-span-4 flex flex-col gap-8">
           <section className="flex flex-col gap-4">
-            <div className="flex justify-between items-center px-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-white/40">技术视觉规格</label>
-            </div>
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 px-1">技术视觉规格</label>
             <form onSubmit={handleGenerate} className="relative">
               <textarea
                 value={state.prompt}
                 onChange={(e) => setState(p => ({ ...p, prompt: e.target.value }))}
                 placeholder="例如：一个模仿 iOS 18 灵动岛风格的静音开关，带有高频触觉感应动画..."
-                className="w-full min-h-[180px] p-6 rounded-[2rem] glass bg-white/[0.01] border-white/5 text-white placeholder-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/30 focus:border-purple-500/30 focus:bg-white/[0.03] transition-all resize-none text-sm leading-relaxed"
+                className="w-full min-h-[180px] p-6 rounded-[2rem] glass bg-white/[0.01] border-white/5 text-white placeholder-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/30 transition-all resize-none text-sm"
               />
               <button 
                 type="submit"
@@ -102,27 +101,21 @@ const App: React.FC = () => {
             
             {state.error && (
               <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-medium flex items-center gap-3">
-                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
                 {state.error}
               </div>
             )}
           </section>
 
           <section>
-            <div className="flex items-center justify-between mb-5 px-1">
-               <h3 className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20">iOS 实验室模板</h3>
-               <span className="text-[9px] text-purple-500/50 font-bold animate-pulse">WWDC 实时灵感推送</span>
-            </div>
+            <h3 className="text-[10px] uppercase font-black tracking-[0.3em] text-white/20 mb-5 px-1">iOS 实验室模板</h3>
             <div className="grid grid-cols-2 gap-3">
               {templates.map((preset) => (
                 <button
                   key={preset}
                   onClick={() => handleQuickPrompt(preset)}
-                  className="px-4 py-4 rounded-2xl bg-white/[0.02] border border-white/5 text-left text-[11px] font-bold text-white/40 hover:text-white hover:bg-white/5 hover:border-white/10 transition-all group relative overflow-hidden"
+                  className="px-4 py-4 rounded-2xl bg-white/[0.02] border border-white/5 text-left text-[11px] font-bold text-white/40 hover:text-white hover:bg-white/5 transition-all relative overflow-hidden group"
                 >
-                  <div className="relative z-10">{preset}</div>
+                  <span className="relative z-10">{preset}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500" />
                 </button>
               ))}
@@ -132,21 +125,21 @@ const App: React.FC = () => {
           <div className="glass p-6 rounded-[2rem] bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border-indigo-500/10">
             <h4 className="text-[11px] font-black uppercase tracking-widest text-indigo-300 mb-2">底层渲染管线</h4>
             <p className="text-[11px] text-white/30 leading-relaxed font-medium">
-              引擎采用 Apple 渲染管线仿真技术。自动处理子像素渲染 (Sub-pixel rendering) 与 Alpha 合成，生成符合 SwiftUI / UIKit 标准的原生级代码。
+              引擎采用 Apple 渲染管线仿真技术。自动处理子像素渲染与 Alpha 合成。
             </p>
           </div>
         </div>
 
-        {/* 右侧栏：预览与代码 - 允许高度随内容扩展 */}
-        <div className="lg:col-span-8 flex flex-col xl:flex-row gap-8 min-h-[600px]">
-          <div className="flex-1 min-h-[500px]">
+        {/* 右侧栏：预览与代码 - 关键改进：限制溢出 */}
+        <div className="lg:col-span-8 flex flex-col xl:flex-row gap-8 min-h-[600px] xl:h-[600px]">
+          <div className="flex-1 min-h-[500px] h-full overflow-hidden flex flex-col">
             <PreviewCard 
               style={state.currentStyle} 
               loading={state.isGenerating} 
               activeLanguage={state.activeLanguage}
             />
           </div>
-          <div className="flex-1 min-h-[500px]">
+          <div className="flex-1 min-h-[500px] h-full overflow-hidden flex flex-col">
             <CodePanel 
               style={state.currentStyle} 
               activeLanguage={state.activeLanguage} 
