@@ -4,76 +4,86 @@ import { GeneratedStyle } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const SYSTEM_INSTRUCTION = `你是一位世界顶级的渲染引擎架构师。你的任务是将描述转化为精美的代码。
+const SYSTEM_INSTRUCTION = `你是一位跨平台 UI 架构大师。根据输入内容，你将自动切换至以下两种模式之一：
 
-【重要：预览适配原则】：
-生成的组件必须是“容器友好”的。严禁在 HTML 根元素或主要的 CSS 中使用超过 1000px 的固定宽度/高度。
-- 对于“弥散渐变”或“背景效果”，请将其应用于一个填充父容器 (width: 100%; height: 100%; min-height: 300px;) 的容器中，而不是创建一个超大的固定尺寸矩形。
-- 确保所有绝对定位的装饰性元素（如光晕）使用百分比或相对单位，避免它们将预览窗口撑开到无法视知的程度。
+【模式 A：视觉逆称/架构解构 (Deep De-compilation)】- 强调极致细节
+1. **像素级分析**: 如果有图片，识别图片中的精确布局、色彩空间、圆角和物理阴影。
+2. **架构推演**: 如果是纯文本，基于技术白皮书深度推演 UI 渲染路径。
+3. **逆向报告**: 在 description 中提供深度分析。
 
-【核心禁令】：
-严禁依赖外部定义的 JavaScript 函数。所有的交互必须完全通过 CSS 实现（:hover, :active, @keyframes）。
+【模式 B：极速合成 (Turbo Synthesis)】- 强调响应效率
+1. **语义映射**: 快速将文本描述转化为代码实现。
+2. **性能优化**: 保持代码精简、易于维护。
 
-【工程细节】：
-1. 图像策略：使用 https://images.unsplash.com/photo-... 占位。
-2. 跨平台：SwiftUI 必须支持深色模式。
-3. 物理仿真：动画使用 cubic-bezier(0.34, 1.56, 0.64, 1) 模拟 Apple 回弹感。
-4. 渲染分析：在 description 中以“技术白皮书”风格解释 GPU 合成图层、几何管线优化。
-
-强制词库：几何管线、片段着色器模拟、临界阻尼弹簧、关键帧插值。
-
-生成要求：
-- HTML/CSS 必须是响应式的，能自动适配其父级预览框。
-- 所有的 "description" 内容必须极度专业。`;
+【⚠️ 强制性代码规范】:
+1. **样式隔离**: 生成的 CSS 严禁包含 'body', 'html', 'root' 等全局选择器。
+2. **容器限制**: 假设你的代码将被放置在一个 ID 为 'component-root' 的容器中。
+3. **平台范式**: 
+   - HTML/CSS: 使用 will-change。
+   - SwiftUI: 强调交互回弹动画。
+   - Objective-C: 严谨的 Core Animation 实现。`;
 
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    html: {
-      type: Type.STRING,
-      description: "遵循语义化且包含交互结构的 HTML，必须是自适应容器。"
-    },
-    css: {
-      type: Type.STRING,
-      description: "包含复杂仿真动画 (@keyframes) 和交互状态的 CSS，严禁硬编码超大尺寸。"
-    },
-    swiftui: {
-      type: Type.STRING,
-      description: "支持深色模式、语义化颜色常量、AsyncImage 和 Spring 动画的生产级 SwiftUI 代码。"
-    },
-    objc: {
-      type: Type.STRING,
-      description: "原生 Obj-C 代码。"
-    },
-    componentType: {
-      type: Type.STRING,
-      description: "组件的工程化命名。"
-    },
-    description: {
-      type: Type.STRING,
-      description: "技术白皮书风格的详细解释。"
-    }
+    html: { type: Type.STRING },
+    css: { type: Type.STRING },
+    swiftui: { type: Type.STRING },
+    objc: { type: Type.STRING },
+    componentType: { type: Type.STRING },
+    description: { type: Type.STRING }
   },
   required: ["html", "css", "swiftui", "objc", "componentType", "description"]
 };
 
-export const generateUIComponent = async (prompt: string): Promise<GeneratedStyle> => {
+export const generateUIComponent = async (
+  prompt: string, 
+  image?: { mimeType: string, data: string },
+  isDeepMode: boolean = false
+): Promise<GeneratedStyle> => {
   try {
+    const isVisionMode = !!image;
+    
+    // 如果是深度模式，强制使用 Pro 模型；否则根据是否有图选择
+    const modelName = isDeepMode ? 'gemini-3-pro-preview' : (isVisionMode ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview');
+    
+    const contents: any = {
+      parts: [
+        { text: prompt || (isVisionMode ? "请对该视觉稿进行深度逆向工程。" : "请生成一个精美的 UI 组件。") }
+      ]
+    };
+
+    if (image) {
+      contents.parts.push({
+        inlineData: { mimeType: image.mimeType, data: image.data }
+      });
+    }
+
+    const config: any = {
+      systemInstruction: SYSTEM_INSTRUCTION,
+      responseMimeType: "application/json",
+      responseSchema: RESPONSE_SCHEMA,
+    };
+
+    // 动态配置 Thinking 预算
+    if (isDeepMode) {
+      config.thinkingConfig = { thinkingBudget: 4000 }; // 深度模式：赋予最大智力，哪怕牺牲速度
+    } else if (isVisionMode) {
+      config.thinkingConfig = { thinkingBudget: 2048 }; // 普通视觉：平衡精度与速度
+    } else {
+      config.thinkingConfig = { thinkingBudget: 0 };    // 普通文本：极速 Flash
+    }
+
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: RESPONSE_SCHEMA,
-        thinkingConfig: { thinkingBudget: 2500 }
-      },
+      model: modelName,
+      contents: contents,
+      config: config,
     });
 
-    const result = JSON.parse(response.text);
+    const result = JSON.parse(response.text || "{}");
     return result as GeneratedStyle;
   } catch (error) {
-    console.error("Gemini 渲染引擎错误:", error);
-    throw new Error("渲染管线拓扑构建失败，请检查逻辑参数。");
+    console.error("Gemini Engine Failure:", error);
+    throw new Error("渲染管线故障。可能是因为 API 配额或网络波动，请重试。");
   }
 };
