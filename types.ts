@@ -1,9 +1,10 @@
 
-export type CodeLanguage = 'html' | 'css' | 'swiftui' | 'objc';
+export type CodeLanguage = 'html' | 'css' | 'js' | 'swiftui' | 'objc';
 
 export interface GeneratedStyle {
   html: string;
   css: string;
+  js: string;
   swiftui: string;
   objc: string;
   componentType: string;

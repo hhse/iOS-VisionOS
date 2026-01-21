@@ -4,36 +4,37 @@ import { GeneratedStyle } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const SYSTEM_INSTRUCTION = `你是一位跨平台 UI 架构大师。根据输入内容，你将自动切换至以下两种模式之一：
+const SYSTEM_INSTRUCTION = `你是一位顶尖的跨平台交互设计师。你生成的 UI 组件不仅要视觉惊艳，更要有“生命感”。
 
-【模式 A：视觉逆称/架构解构 (Deep De-compilation)】- 强调极致细节
-1. **像素级分析**: 如果有图片，识别图片中的精确布局、色彩空间、圆角和物理阴影。
-2. **架构推演**: 如果是纯文本，基于技术白皮书深度推演 UI 渲染路径。
-3. **逆向报告**: 在 description 中提供深度分析。
+【⚠️ 交互核心规范】:
+1. **果冻回弹**: 必须在 CSS 转换中使用 'cubic-bezier(0.68, -0.6, 0.32, 1.6)'。
+2. **状态机逻辑**: 在 'js' 字段中编写原生 JavaScript 处理点击、悬停和激活状态。
+3. **触感反馈**: 模拟物理点击感（通过微妙的缩放 0.95 和阴影变化）。
+4. **磨砂动态**: 交互时模糊度（backdrop-filter）和边框发光应随状态平滑过渡。
 
-【模式 B：极速合成 (Turbo Synthesis)】- 强调响应效率
-1. **语义映射**: 快速将文本描述转化为代码实现。
-2. **性能优化**: 保持代码精简、易于维护。
+【模式 A：视觉解构 (Deep De-compilation)】
+- 分析图片中的阴影层级、模糊半径、色彩渐变。
+- 在描述中输出像素级的交互参数报告。
 
-【⚠️ 强制性代码规范】:
-1. **样式隔离**: 生成的 CSS 严禁包含 'body', 'html', 'root' 等全局选择器。
-2. **容器限制**: 假设你的代码将被放置在一个 ID 为 'component-root' 的容器中。
-3. **平台范式**: 
-   - HTML/CSS: 使用 will-change。
-   - SwiftUI: 强调交互回弹动画。
-   - Objective-C: 严谨的 Core Animation 实现。`;
+【模式 B：极速合成 (Turbo Synthesis)】
+- 快速生成具备完整悬停动效和点击交互的代码。
+
+【代码约束】:
+- HTML/CSS 必须包含 'will-change: transform, filter' 优化。
+- JS 代码必须能够独立运行在容器 ID 为 'component-root' 的环境中。`;
 
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     html: { type: Type.STRING },
     css: { type: Type.STRING },
+    js: { type: Type.STRING, description: "原生 JavaScript 交互代码" },
     swiftui: { type: Type.STRING },
     objc: { type: Type.STRING },
     componentType: { type: Type.STRING },
     description: { type: Type.STRING }
   },
-  required: ["html", "css", "swiftui", "objc", "componentType", "description"]
+  required: ["html", "css", "js", "swiftui", "objc", "componentType", "description"]
 };
 
 export const generateUIComponent = async (
@@ -43,13 +44,11 @@ export const generateUIComponent = async (
 ): Promise<GeneratedStyle> => {
   try {
     const isVisionMode = !!image;
-    
-    // 如果是深度模式，强制使用 Pro 模型；否则根据是否有图选择
     const modelName = isDeepMode ? 'gemini-3-pro-preview' : (isVisionMode ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview');
     
     const contents: any = {
       parts: [
-        { text: prompt || (isVisionMode ? "请对该视觉稿进行深度逆向工程。" : "请生成一个精美的 UI 组件。") }
+        { text: prompt || (isVisionMode ? "请深度还原此视觉稿并赋予其极致的交互动效。" : "请生成一个具备果冻感交互的磨砂组件。") }
       ]
     };
 
@@ -65,13 +64,10 @@ export const generateUIComponent = async (
       responseSchema: RESPONSE_SCHEMA,
     };
 
-    // 动态配置 Thinking 预算
     if (isDeepMode) {
-      config.thinkingConfig = { thinkingBudget: 4000 }; // 深度模式：赋予最大智力，哪怕牺牲速度
+      config.thinkingConfig = { thinkingBudget: 4000 };
     } else if (isVisionMode) {
-      config.thinkingConfig = { thinkingBudget: 2048 }; // 普通视觉：平衡精度与速度
-    } else {
-      config.thinkingConfig = { thinkingBudget: 0 };    // 普通文本：极速 Flash
+      config.thinkingConfig = { thinkingBudget: 2048 };
     }
 
     const response = await ai.models.generateContent({
@@ -84,6 +80,6 @@ export const generateUIComponent = async (
     return result as GeneratedStyle;
   } catch (error) {
     console.error("Gemini Engine Failure:", error);
-    throw new Error("渲染管线故障。可能是因为 API 配额或网络波动，请重试。");
+    throw new Error("渲染管线故障。");
   }
 };
